@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Umma Raudan</title>
+  <title>Umma Raudhan</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
     .card img { height: 180px; object-fit: cover; }
@@ -30,7 +30,7 @@
     <div class="container-fluid">
       <a class="navbar-brand d-flex align-items-center" href="#" onclick="showListing()">
         <img src="logo.png" alt="Logo" height="30" class="me-2" />
-        <span class="text-white">Umma Raudan</span>
+        <span class="text-white">Umma Raudhan</span>
       </a>
             <button class="navbar-toggler bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMenu">
         <span class="navbar-toggler-icon"></span>
@@ -65,7 +65,7 @@
   <!-- Cara Pesan Section -->
 <div id="caraPesanSection" class="container mt-4" style="display:none">
   <h2 class="mb-3">Cara Pemesanan</h2>
-  <p>Toko Umma Raudan berkomitmen untuk membuat pengalaman pemesanan undangan pernikahan menjadi mudah dan menyenangkan. Berikut langkah-langkah lengkap untuk memesan undangan pernikahan di Umma Raudan.</p>
+  <p>Toko Umma Raudhan berkomitmen untuk membuat pengalaman pemesanan undangan pernikahan menjadi mudah dan menyenangkan. Berikut langkah-langkah lengkap untuk memesan undangan pernikahan di Umma Raudhan.</p>
   <ol>
     <li><strong>Pilih Paket</strong><br>Pilih paket undangan yang sesuai dengan keinginan Anda.</li>
     <li><strong>Konsultasi (Opsional)</strong><br>Jika ada pertanyaan, hubungi customer service kami untuk konsultasi langsung.</li>
@@ -83,11 +83,11 @@
   <h2 class="mb-3">Kontak Kami</h2>
   <p>Hubungi kami melalui platform berikut:</p>
   <div class="d-flex flex-column gap-3">
-    <a href="https://wa.me/6289609745090" target="_blank" class="btn btn-success d-flex align-items-center" style="max-width:300px">
-      <i class="bi bi-whatsapp fs-4 me-2"></i> WhatsApp: 0896-0974-5090
+    <a href="https://wa.me/6289601875023" target="_blank" class="btn btn-success d-flex align-items-center" style="max-width:300px">
+      <i class="bi bi-whatsapp fs-4 me-2"></i> WhatsApp: 0896-0187-5023
     </a>
-    <a href="https://www.instagram.com/ummaraudan" target="_blank" class="btn btn-danger d-flex align-items-center" style="max-width:300px">
-      <i class="bi bi-instagram fs-4 me-2"></i> Instagram: @ummaraudan
+    <a href="https://www.instagram.com/toko_umma_raudhan/" target="_blank" class="btn btn-danger d-flex align-items-center" style="max-width:300px">
+      <i class="bi bi-instagram fs-4 me-2"></i> Instagram: @toko_umma_raudhan
     </a>
     <a href="https://www.facebook.com/franika.korompot.7" target="_blank" class="btn btn-primary d-flex align-items-center" style="max-width:300px">
       <i class="bi bi-facebook fs-4 me-2"></i> Facebook: Franika Korompot
@@ -137,6 +137,17 @@
     </div>
   </div>
 
+
+  <div class="modal fade" id="zoomModal" tabindex="-1" aria-labelledby="zoomModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content bg-dark">
+        <div class="modal-body text-center p-0">
+          <img id="zoomedImage" src="" class="img-fluid" alt="Zoom Gambar">
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const appsScriptURL = "https://script.google.com/macros/s/AKfycbzTSN5GdU6TnFflUYhfO1IPqBVO9wIf_UNEnLZdpXLYf7xQICw10Iv9hCW2wHQVDdb6hQ/exec";
@@ -148,15 +159,14 @@
       loading.style.display = 'flex';
 
       try {
-        const cached = localStorage.getItem('produkCache');
-        if (cached) {
-          produk = JSON.parse(cached);
-        } else {
-          const res = await fetch(appsScriptURL);
-          const result = await res.json();
-          produk = result.map(p => ({ ...p, harga50: parseInt(p.harga50 || 0) }));
-          localStorage.setItem('produkCache', JSON.stringify(produk));
-        }
+        const res = await fetch(appsScriptURL);
+        const result = await res.json();
+        produk = result.map(p => ({
+          ...p,
+          harga: parseInt(p.harga || p.harga50 || p.harga500 || '0'),
+          harga50: parseInt(p.harga50 || '0'),
+          harga500: parseInt(p.harga500 || '0'),
+        }));
 
         tampilkanKategori();
         filterProduk();
@@ -169,32 +179,47 @@
     }
 
 
+
     function tampilkanKategori() {
       const list = document.getElementById('kategoriList');
       const uniq = [...new Set(produk.map(p => p.kategori))];
-      list.innerHTML = `<button class='btn btn-outline-secondary category-btn ${kategoriAktif===''?'active':''}' onclick='setKategori("")'>Semua</button>`;
-      uniq.forEach(k => list.innerHTML += `<button class='btn btn-outline-secondary category-btn ${kategoriAktif===k?'active':''}' onclick='setKategori("${k}")'>${k}</button>`);
+      list.innerHTML = `
+        <button class="btn btn-outline-secondary category-btn ${kategoriAktif===''?'active':''}"
+                onclick="setKategori('')">Semua</button>
+        <button class="btn btn-outline-secondary category-btn ${kategoriAktif==='Murah'?'active':''}"
+                onclick="setKategori('Murah')">Murah</button>
+      `;
+      uniq.forEach(k => {
+        list.innerHTML += `
+          <button class="btn btn-outline-secondary category-btn ${kategoriAktif===k?'active':''}"
+                  onclick="setKategori('${k}')">${k}</button>
+        `;
+      });
     }
 
     function setKategori(k) { kategoriAktif = k; tampilkanKategori(); filterProduk(); }
 
     function tampilkanProduk(data) {
-      const row = document.getElementById('produk-list'); row.innerHTML = '';
-      if (!data.length) { row.innerHTML = "<div class='text-center w-100'>Produk tidak ditemukan.</div>"; return; }
+      const row = document.getElementById('produk-list');
+      row.innerHTML = '';
       data.forEach(item => {
+        // ambil thumbnail dari array gambar (Apps Script sekarang mengirim array)
+        const thumb = Array.isArray(item.gambar) ? item.gambar[0] : item.gambar;
         row.innerHTML += `
           <div class='col-12 col-md-3 mb-4'>
             <div class='card h-100' style='cursor:pointer' onclick='showDetail(${item.id})'>
-              <img src='${item.gambar}' class='card-img-top' onerror="this.src='https://via.placeholder.com/300x180?text=No+Image'" />
+              <img src='${thumb}' class='card-img-top' onerror="this.src='https://via.placeholder.com/300x180?text=No+Image'" />
               <div class='card-body d-flex flex-column'>
                 <h5 class='card-title'>${item.nama}</h5>
-                <p class='card-text'>Rp ${parseInt(item.harga500).toLocaleString()}</p>
+                <p class='card-text'>Rp ${item.harga500.toLocaleString()}</p>
                 <button class='btn btn-primary mt-auto' onclick='openOrderModal(event, ${item.id})'>Pesan Sekarang</button>
               </div>
             </div>
           </div>`;
       });
     }
+
+
 
     function openOrderModal(evt, id) {
       evt.stopPropagation();
@@ -205,7 +230,7 @@
 
       // Cek apakah harga50 kosong atau nol
       const harga50Kosong = !currentItem.harga50 || parseInt(currentItem.harga50) === 0;
-      const minQty = harga50Kosong ? 100 : 1;
+      const minQty = harga50Kosong ? 100 : 50;
 
       qtyInput.min = minQty;
       qtyInput.value = minQty;
@@ -213,7 +238,11 @@
       setOrderDetails(minQty);
 
       qtyInput.oninput = () => {
-        const val = parseInt(qtyInput.value) || minQty;
+        let val = parseInt(qtyInput.value) || minQty;
+        if (val < minQty) {
+          val = minQty;
+          qtyInput.value = minQty;
+        }
         setOrderDetails(val);
       };
 
@@ -248,6 +277,10 @@
         alert("Minimal order 100 pcs");
         return;
       }
+      if (!harga50Kosong && qty < 50) {
+        alert("Minimal order 50 pcs");
+        return;
+      }
 
       const name = document.getElementById('custName').value.trim();
       const address = document.getElementById('custAddress').value.trim();
@@ -263,41 +296,113 @@
         `hai min, saya ${name} dari ${address} ingin memesan ${qty} pcs produk ${prod.kategori} ${prod.nama} (Harga satuan: Rp ${unitPrice.toLocaleString()}, Total: Rp ${totalPrice.toLocaleString()})\n${prod.gambar}`
       );
 
-      window.open(`https://wa.me/6289609745090?text=${msg}`, '_blank');
+      window.open(`https://wa.me/6289601875023?text=${msg}`, '_blank');
     });
 
 
     function showDetail(id) {
-      document.getElementById('listingSection').style.display='none';
-      document.getElementById('detailSection').style.display='block';
-      const item = produk.find(p => p.id === id); currentItem = item;
+      // Sembunyikan listing, tampilkan detail
+      document.getElementById('listingSection').style.display = 'none';
+      document.getElementById('detailSection').style.display = 'block';
+
+      // Ambil data produk
+      const item = produk.find(p => p.id === id);
+      if (!item) return console.error('Produk tidak ditemukan:', id);
+      currentItem = item;
+
+      // Siapkan list gambar: Apps Script sudah kirim array, fallback jika string
+      const gambarList = Array.isArray(item.gambar)
+        ? item.gambar
+        : (item.gambar || '').split('|').map(u => u.trim()).filter(u => u);
+
+      // Bangun indikator & slide
+      let indicators = '', slides = '';
+      gambarList.forEach((src, i) => {
+        indicators += `
+          <button type="button"
+                  data-bs-target="#gambarCarousel"
+                  data-bs-slide-to="${i}"
+                  class="${i === 0 ? 'active' : ''}"
+                  aria-current="${i === 0 ? 'true' : 'false'}"
+                  aria-label="Slide ${i + 1}"></button>`;
+        slides += `
+          <div class="carousel-item ${i === 0 ? 'active' : ''}">
+            <img src="${src}"
+                class="d-block w-100 product-image"
+                alt="Gambar ${i + 1}"
+                data-bs-toggle="modal"
+                data-bs-target="#zoomModal"
+                onclick="zoomGambar('${src}')">
+          </div>`;
+      });
+
+      // Template carousel (atau satu gambar jika hanya satu)
+      const sliderHTML = gambarList.length > 1
+        ? `
+          <div id="gambarCarousel" class="carousel slide mb-3" data-bs-ride="carousel">
+            <div class="carousel-indicators">${indicators}</div>
+            <div class="carousel-inner">${slides}</div>
+            <button class="carousel-control-prev" type="button"
+                    data-bs-target="#gambarCarousel" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button"
+                    data-bs-target="#gambarCarousel" data-bs-slide="next">
+              <span class="carousel-control-next-icon"></span>
+            </button>
+          </div>`
+        : `
+          <img src="${gambarList[0] || ''}"
+              class="product-image mb-3"
+              alt="Gambar 1"
+              data-bs-toggle="modal"
+              data-bs-target="#zoomModal"
+              onclick="zoomGambar('${gambarList[0] || ''}')">`;
+
+      // Render detail produk + slider
       const div = document.getElementById('detailProduk');
       div.innerHTML = `
-        <div class='col-md-6'>
-          <img src='${item.gambar}' class='product-image rounded'/>
-        </div>
-        <div class='col-md-6'>
-          <h2>${item.nama}</h2>
-          <p class='text-muted'>Kategori: ${item.kategori}</p>
-          <h4>Rp ${item.harga500.toLocaleString()}</h4>
-          <p class='mt-3'>${item.deskripsi.replace(/\n/g, '<br>')}</p>
-          <button class='btn btn-primary mt-3' onclick='openOrderModal(event, ${item.id})'>Pesan Sekarang</button>
-        </div>
-        <div class='col-12 mt-5'><h3>Rekomendasi Lainnya</h3><div class='row' id='recommendation'></div></div>`;
-      const recDiv = document.getElementById('recommendation');
-      const rec = produk.filter(p => p.kategori===item.kategori && p.id!==item.id).slice(0,4);
-      recDiv.innerHTML=''; rec.forEach(p => recDiv.innerHTML += `
-        <div class='col-12 col-sm-6 col-md-3 mb-4'>
-          <div class='card h-100' onclick='showDetail(${p.id})' style='cursor:pointer'>
-            <img src='${p.gambar}' class='card-img-top'/>
-            <div class='card-body'>
-              <h6 class='card-title'>${p.nama}</h6>
-              <p class='card-text'>Rp ${parseInt(p.harga).toLocaleString()}</p>
-              <button class='btn btn-primary' onclick='openOrderModal(event, ${p.id})'>Pesan Sekarang</button>
-            </div>
+        <div class="row">
+          <div class="col-md-6">${sliderHTML}</div>
+          <div class="col-md-6">
+            <h2>${item.nama}</h2>
+            <p class="text-muted">Kategori: ${item.kategori}</p>
+            <h4 class="text-danger">Rp ${item.harga500.toLocaleString()}</h4>
+            <p class="mt-3">${(item.deskripsi || '').replace(/\n/g, '<br>')}</p>
+            <button class="btn btn-primary mt-3" onclick="openOrderModal(event, ${item.id})">
+              Pesan Sekarang
+            </button>
           </div>
-        </div>`);
+          <div class="col-12 mt-5">
+            <h3>Rekomendasi Lainnya</h3>
+            <div class="row" id="recommendation"></div>
+          </div>
+        </div>`;
+
+      // Rekomendasi
+      const recDiv = document.getElementById('recommendation');
+      const rec = produk
+        .filter(p => p.kategori === item.kategori && p.id !== item.id)
+        .slice(0, 4);
+      recDiv.innerHTML = '';
+      rec.forEach(p => {
+        const thumb = Array.isArray(p.gambar) ? p.gambar[0] : p.gambar;
+        recDiv.innerHTML += `
+          <div class="col-12 col-sm-6 col-md-3 mb-4">
+            <div class="card h-100" onclick="showDetail(${p.id})" style="cursor:pointer">
+              <img src="${thumb}" class="card-img-top" onerror="this.src='https://via.placeholder.com/300x180?text=No+Image'"/>
+              <div class="card-body">
+                <h6 class="card-title">${p.nama}</h6>
+                <p class="card-text">Rp ${parseInt(p.harga).toLocaleString()}</p>
+                <button class="btn btn-primary" onclick="openOrderModal(event, ${p.id})">
+                  Pesan Sekarang
+                </button>
+              </div>
+            </div>
+          </div>`;
+      });
     }
+
 
     function showListing() {
       document.getElementById('detailSection').style.display='none';
@@ -312,11 +417,128 @@
     function filterProduk() {
       const kw = document.getElementById('searchInput').value.toLowerCase();
       const s = document.getElementById('sortSelect').value;
-      let res = produk.filter(p => p.nama.toLowerCase().includes(kw) && (kategoriAktif? p.kategori===kategoriAktif : true));
-      if (s==='asc') res.sort((a,b)=>a.harga-b.harga);
-      else if (s==='desc') res.sort((a,b)=>b.harga-a.harga);
-      tampilkanProduk(res);
+
+      let res = produk.filter(p =>
+        // cari nama
+        p.nama.toLowerCase().includes(kw) &&
+        // jika kategoriAktif === 'Murah', pakai harga ≤ 5000
+        ( kategoriAktif === 'Murah'
+            ? p.harga <= 6000
+            : (kategoriAktif ? p.kategori === kategoriAktif : true)
+        )
+      );
+
+      // Pisahkan produk dengan harga tidak valid (kosong atau nol)
+      const validHarga = res.filter(p => p.harga && p.harga > 0);
+      const invalidHarga = res.filter(p => !p.harga || p.harga <= 0);
+
+      // Default: urutkan produk terbaru
+      validHarga.sort((a, b) => b.id - a.id);
+
+      // Urutkan berdasarkan harga jika dipilih
+      if (s === 'asc') {
+        validHarga.sort((a, b) => {
+          if (a.harga === b.harga) return b.id - a.id;
+          return a.harga - b.harga;
+        });
+      } else if (s === 'desc') {
+        validHarga.sort((a, b) => {
+          if (a.harga === b.harga) return b.id - a.id;
+          return b.harga - a.harga;
+        });
+      }
+
+      // Gabungkan kembali: produk dengan harga valid dulu, baru yang tidak valid
+      tampilkanProduk([...validHarga, ...invalidHarga]);
     }
+
+
+
+
+    function tampilkanDetailProduk(item) {
+      currentItem = item;
+      ['listingSection','caraPesanSection','kontakKamiSection']
+        .forEach(id => document.getElementById(id).style.display = 'none');
+      document.getElementById('detailSection').style.display = 'block';
+
+      const gambarList = Array.isArray(item.gambar)
+        ? item.gambar
+        : (item.gambar||'').split('|').map(u=>u.trim()).filter(u=>u);
+
+      console.log('Detail gambarList:', gambarList);
+
+      let indicators = '', slides = '';
+      gambarList.forEach((src,i) => {
+        indicators += `
+          <button type="button"
+                  data-bs-target="#gambarCarousel"
+                  data-bs-slide-to="${i}"
+                  class="${i===0?'active':''}"
+                  aria-current="${i===0?'true':'false'}"
+                  aria-label="Slide ${i+1}"></button>`;
+        slides += `
+          <div class="carousel-item ${i===0?'active':''}">
+            <img src="${src}"
+                class="d-block w-100 product-image"
+                alt="Gambar ${i+1}"
+                data-bs-toggle="modal"
+                data-bs-target="#zoomModal"
+                onclick="zoomGambar('${src}')">
+          </div>`;
+      });
+
+      const sliderHTML = gambarList.length>1
+        ? `
+          <div id="gambarCarousel" class="carousel slide mb-3" data-bs-ride="carousel">
+            <div class="carousel-indicators">${indicators}</div>
+            <div class="carousel-inner">${slides}</div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#gambarCarousel" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#gambarCarousel" data-bs-slide="next">
+              <span class="carousel-control-next-icon"></span>
+            </button>
+          </div>`
+        : `
+          <img src="${gambarList[0]||''}"
+              class="product-image mb-3"
+              alt="Gambar 1"
+              data-bs-toggle="modal"
+              data-bs-target="#zoomModal"
+              onclick="zoomGambar('${gambarList[0]||''}')">`;
+
+      document.getElementById('detailProduk').innerHTML = `
+        <div class="row">
+          <div class="col-md-6">${sliderHTML}</div>
+          <div class="col-md-6">
+            <h3>${item.nama}</h3>
+            <h4 class="text-danger">Rp ${item.harga50.toLocaleString()}</h4>
+            <p>${(item.deskripsi||'').replace(/\\n/g,'<br>')}</p>
+            <button class="btn btn-success" onclick="openOrderModal(event, ${item.id})">
+              Pesan Sekarang
+            </button>
+          </div>
+        </div>`;
+    }
+
+
+
+    function bukaOrderModal(nama, harga) {
+      document.getElementById('orderProdNameText').textContent = nama;
+      document.getElementById('orderUnitPriceText').textContent = 'Harga per 50 pcs: Rp ' + harga.toLocaleString();
+      const qty = parseInt(document.getElementById('orderQty').value);
+      document.getElementById('orderQtyText').textContent = qty;
+      document.getElementById('orderTotalPriceText').textContent = 'Total: Rp ' + (qty * harga).toLocaleString();
+      orderModal.show();
+    }
+
+    document.getElementById('orderQty').addEventListener('input', () => {
+      const qty = parseInt(document.getElementById('orderQty').value);
+      document.getElementById('orderQtyText').textContent = qty;
+      if (currentItem) {
+        document.getElementById('orderTotalPriceText').textContent = 'Total: Rp ' + (qty * currentItem.harga50).toLocaleString();
+      }
+    });
 
     window.onload = loadProduk;
 
@@ -336,7 +558,9 @@
       document.getElementById('kontakKamiSection').style.display = 'block';
     }
 
-
+    function zoomGambar(src) {
+      document.getElementById('zoomedImage').src = src;
+    }
 
   </script>
 </body>
