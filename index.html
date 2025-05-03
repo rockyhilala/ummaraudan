@@ -18,6 +18,13 @@
   </style>
 </head>
 <body>
+
+  <div id="loadingOverlay" style="position:fixed; top:0; left:0; right:0; bottom:0; background:white; z-index:9999; display:flex; align-items:center; justify-content:center;">
+    <div class="spinner-border text-danger" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+  
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-danger bg-danger sticky-top p-2">
     <div class="container-fluid">
@@ -137,14 +144,30 @@
     const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
 
     async function loadProduk() {
+      const loading = document.getElementById('loadingOverlay');
+      loading.style.display = 'flex';
+
       try {
-        const res = await fetch(appsScriptURL);
-        produk = await res.json();
-        tampilkanKategori(); filterProduk();
-      } catch {
+        const cached = localStorage.getItem('produkCache');
+        if (cached) {
+          produk = JSON.parse(cached);
+        } else {
+          const res = await fetch(appsScriptURL);
+          const result = await res.json();
+          produk = result.map(p => ({ ...p, harga50: parseInt(p.harga50 || 0) }));
+          localStorage.setItem('produkCache', JSON.stringify(produk));
+        }
+
+        tampilkanKategori();
+        filterProduk();
+      } catch (err) {
         document.getElementById('produk-list').innerHTML = "<div class='text-center w-100 text-danger'>Gagal memuat produk.</div>";
+        console.error("Gagal mengambil produk:", err);
+      } finally {
+        loading.style.display = 'none';
       }
     }
+
 
     function tampilkanKategori() {
       const list = document.getElementById('kategoriList');
@@ -176,16 +199,34 @@
     function openOrderModal(evt, id) {
       evt.stopPropagation();
       currentItem = produk.find(p => p.id === id);
+
+      const qtyInput = document.getElementById('orderQty');
       document.getElementById('orderForm').reset();
-      setOrderDetails(1);
-      document.getElementById('orderQty').oninput = () => setOrderDetails(parseInt(document.getElementById('orderQty').value) || 1);
+
+      // Cek apakah harga50 kosong atau nol
+      const harga50Kosong = !currentItem.harga50 || parseInt(currentItem.harga50) === 0;
+      const minQty = harga50Kosong ? 100 : 1;
+
+      qtyInput.min = minQty;
+      qtyInput.value = minQty;
+
+      setOrderDetails(minQty);
+
+      qtyInput.oninput = () => {
+        const val = parseInt(qtyInput.value) || minQty;
+        setOrderDetails(val);
+      };
+
       orderModal.show();
     }
+
+
 
     async function setOrderDetails(qty) {
       const res = await fetch(`${appsScriptURL}?jumlah=${qty}`);
       const data = await res.json();
       const prod = data.find(p => p.id === currentItem.id);
+
       const unitPrice = prod.harga;
       const totalPrice = unitPrice * qty;
       document.getElementById('orderProdNameText').textContent = prod.nama;
@@ -194,22 +235,37 @@
       document.getElementById('orderTotalPriceText').textContent = `Total: Rp ${totalPrice.toLocaleString()}`;
     }
 
+
+
     document.getElementById('orderForm').addEventListener('submit', async function(e) {
       e.preventDefault();
+
+      const qty = parseInt(document.getElementById('orderQty').value);
+      const harga50Kosong = !currentItem.harga50 || parseInt(currentItem.harga50) === 0;
+
+      // Validasi: Jika harga50 kosong dan qty < 100, hentikan
+      if (harga50Kosong && qty < 100) {
+        alert("Minimal order 100 pcs");
+        return;
+      }
+
       const name = document.getElementById('custName').value.trim();
       const address = document.getElementById('custAddress').value.trim();
-      const qty = parseInt(document.getElementById('orderQty').value);
       orderModal.hide();
+
       const res = await fetch(`${appsScriptURL}?jumlah=${qty}`);
       const data = await res.json();
       const prod = data.find(p => p.id === currentItem.id);
+
       const unitPrice = prod.harga;
       const totalPrice = unitPrice * qty;
       const msg = encodeURIComponent(
         `hai min, saya ${name} dari ${address} ingin memesan ${qty} pcs produk ${prod.kategori} ${prod.nama} (Harga satuan: Rp ${unitPrice.toLocaleString()}, Total: Rp ${totalPrice.toLocaleString()})\n${prod.gambar}`
       );
+
       window.open(`https://wa.me/6289609745090?text=${msg}`, '_blank');
     });
+
 
     function showDetail(id) {
       document.getElementById('listingSection').style.display='none';
@@ -279,6 +335,8 @@
       document.getElementById('caraPesanSection').style.display = 'none';
       document.getElementById('kontakKamiSection').style.display = 'block';
     }
+
+
 
   </script>
 </body>
