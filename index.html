@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Umma Raudhan</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
   <style>
     .card img { height: 180px; object-fit: cover; }
     .card-title { font-size: 1rem; }
@@ -39,7 +41,7 @@
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           <li class="nav-item"><a class="nav-link" href="#" onclick="showListing()">Beranda</a></li>
           <li class="nav-item"><a class="nav-link" href="#" onclick="showCaraPesan()">Cara Pesan</a></li>
-          <li class="nav-item"><a class="nav-link" href="#">Tanya Jawab</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" onclick="showTanyaJawab()">Tanya Jawab</a></li>
           <li class="nav-item"><a class="nav-link" href="#" onclick="showKontakKami()">Kontak Kami</a></li>
         </ul>
         <input id="searchInput" class="form-control w-50 me-2" placeholder="Cari produk..." oninput="filterProduk()" />
@@ -78,6 +80,16 @@
   </ol>
 </div>
 
+<!-- Tanya Jawab Section -->
+<!-- ganti seluruh <div id="tanyaJawabSection">…</div> -->
+<div id="tanyaJawabSection" class="container mt-4" style="display:none">
+  <h2 class="mb-3">Tanya Jawab</h2>
+  <div class="accordion" id="faqAccordion">
+    <!-- Isi akan di-inject lewat JS -->
+  </div>
+</div>
+
+
 <!-- Kontak Kami Section -->
 <div id="kontakKamiSection" class="container mt-4" style="display:none">
   <h2 class="mb-3">Kontak Kami</h2>
@@ -94,8 +106,6 @@
     </a>
   </div>
 </div>
-
-
 
   <!-- Order Modal -->
   <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
@@ -153,6 +163,8 @@
     const appsScriptURL = "https://script.google.com/macros/s/AKfycbzTSN5GdU6TnFflUYhfO1IPqBVO9wIf_UNEnLZdpXLYf7xQICw10Iv9hCW2wHQVDdb6hQ/exec";
     let produk = [], kategoriAktif = '', currentItem = null;
     const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
+    let _faqLoaded = false;
+
 
     async function loadProduk() {
       const loading = document.getElementById('loadingOverlay');
@@ -178,7 +190,51 @@
       }
     }
 
+    async function loadFaq() {
+    // 1. Build URL secara eksplisit
+    const url = new URL(appsScriptURL);
+    url.searchParams.append('sheet', 'FAQ');
 
+    try {
+      const res  = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const faqs = await res.json();
+
+      // 3. Render Accordion
+      const acc = document.getElementById('faqAccordion');
+      acc.innerHTML = faqs.map((f,i) => `
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="faqHeading${i}">
+            <button class="accordion-button ${i!==0? 'collapsed' : ''}"
+                    type="button" data-bs-toggle="collapse"
+                    data-bs-target="#faq${i}"
+                    aria-expanded="${i===0}"
+                    aria-controls="faq${i}">
+              ${i+1}. ${f.question}
+            </button>
+          </h2>
+          <div id="faq${i}"
+               class="accordion-collapse collapse ${i===0? 'show' : ''}"
+               aria-labelledby="faqHeading${i}"
+               data-bs-parent="#faqAccordion">
+            <div class="accordion-body">${f.answer}</div>
+          </div>
+        </div>
+      `).join('');
+
+    } catch(err) {
+      console.error("Gagal load FAQ:", err);
+      document.getElementById('faqAccordion').innerHTML =
+        `<div class="text-danger">Error memuat FAQ. Cek console.</div>`;
+    }
+  }
+
+  function showTanyaJawab() {
+    ['listingSection','detailSection','caraPesanSection','kontakKamiSection']
+      .forEach(id => document.getElementById(id).style.display = 'none');
+    if (!_faqLoaded) { loadFaq(); _faqLoaded = true; }
+    document.getElementById('tanyaJawabSection').style.display = 'block';
+  }
 
     function tampilkanKategori() {
       const list = document.getElementById('kategoriList');
@@ -292,9 +348,15 @@
 
       const unitPrice = prod.harga;
       const totalPrice = unitPrice * qty;
+      const imageUrl = Array.isArray(prod.gambar) ? prod.gambar[0] : prod.gambar;
       const msg = encodeURIComponent(
-        `hai min, saya ${name} dari ${address} ingin memesan ${qty} pcs produk ${prod.kategori} ${prod.nama} (Harga satuan: Rp ${unitPrice.toLocaleString()}, Total: Rp ${totalPrice.toLocaleString()})\n${prod.gambar}`
+        `Hai min, saya ${name} dari ${address} ingin memesan ${qty} pcs produk *${prod.kategori} - ${prod.nama}*\n` +
+        `Harga satuan: Rp ${unitPrice.toLocaleString()}\n` +
+        `Total: Rp ${totalPrice.toLocaleString()}\n` +
+        `\n` +
+        `Gambar: ${imageUrl}`
       );
+
 
       window.open(`https://wa.me/6289601875023?text=${msg}`, '_blank');
     });
