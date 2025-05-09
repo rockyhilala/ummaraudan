@@ -56,12 +56,22 @@
     <select id="sortSelect" class="form-select w-auto mb-3" onchange="filterProduk()">
       <option value="">Urutkan</option><option value="asc">Harga Terendah</option><option value="desc">Harga Tertinggi</option>
     </select>
+
+    <div id="produkPilihan" class="mb-4"></div>
+
+    <div class="mb-3 text-end">
+      <button id="btnKembali" class="btn btn-outline-primary btn-sm" onclick="kembaliKeUtama()" style="display:none;">
+        ← Kembali
+      </button>
+    </div>    
+
     <div class="row" id="produk-list"><div class="text-center w-100">Memuat produk...</div></div>
+    
   </div>
 
   <!-- Detail Section -->
   <div id="detailSection" class="container mt-4" style="display:none">
-    <button class="btn btn-secondary mb-3" onclick="showListing()">← Kembali</button>
+    <button class="btn btn-outline-primary btn-sm mb-3" onclick="showListing()">← Kembali</button>
     <div id="detailProduk" class="row"></div>
   </div>
 
@@ -159,12 +169,16 @@
     </div>
   </div>
 
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const appsScriptURL = "https://script.google.com/macros/s/AKfycbzTSN5GdU6TnFflUYhfO1IPqBVO9wIf_UNEnLZdpXLYf7xQICw10Iv9hCW2wHQVDdb6hQ/exec";
+    const scriptBaseUrl = "https://script.google.com/macros/s/AKfycbzTSN5GdU6TnFflUYhfO1IPqBVO9wIf_UNEnLZdpXLYf7xQICw10Iv9hCW2wHQVDdb6hQ/exec";
     let produk = [], kategoriAktif = '', currentItem = null;
     const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
     let _faqLoaded = false;
+    let tampilanUtama = true;
+
 
 
     async function loadProduk() {
@@ -172,7 +186,7 @@
       loading.style.display = 'flex';
 
       try {
-        const res = await fetch(appsScriptURL);
+        const res = await fetch(scriptBaseUrl);
         const result = await res.json();
         produk = result.map(p => ({
           ...p,
@@ -183,6 +197,8 @@
 
         tampilkanKategori();
         filterProduk();
+        tampilkanProdukPilihan();
+
       } catch (err) {
         document.getElementById('produk-list').innerHTML = "<div class='text-center w-100 text-danger'>Gagal memuat produk.</div>";
         console.error("Gagal mengambil produk:", err);
@@ -193,13 +209,18 @@
 
     async function loadFaq() {
     // 1. Build URL secara eksplisit
-    const url = new URL(appsScriptURL);
+    const url = new URL(scriptBaseUrl);
     url.searchParams.append('sheet', 'FAQ');
 
     try {
       const res  = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const faqs = await res.json();
+
+      // 2. Kalau JSON-nya ternyata array produk, itu tanda param sheet GAGAL diteruskan
+      if (faqs.length > 0 && faqs[0].question === undefined) {
+        console.error("Data bukan FAQ! Cek Apps Script getFaqResponse()");
+      }
 
       // 3. Render Accordion
       const acc = document.getElementById('faqAccordion');
@@ -245,6 +266,8 @@
                 onclick="setKategori('')">Semua</button>
         <button class="btn btn-outline-secondary category-btn ${kategoriAktif==='Murah'?'active':''}"
                 onclick="setKategori('Murah')">Murah</button>
+        <button class="btn btn-outline-secondary category-btn ${kategoriAktif==='Populer'?'active':''}"
+                onclick="setKategori('Populer')">Populer</button>
       `;
       uniq.forEach(k => {
         list.innerHTML += `
@@ -269,7 +292,7 @@
               <div class='card-body d-flex flex-column'>
                 <h5 class='card-title'>${item.nama}</h5>
                 <p class='card-text'>Rp ${item.harga500.toLocaleString()}</p>
-                <button class='btn btn-primary mt-auto' onclick='openOrderModal(event, ${item.id})'>Pesan Sekarang</button>
+                <button class='btn btn-primary mt-auto' onclick='tambahKlik(${item.id}); openOrderModal(event, ${item.id})'>Pesan Sekarang</button>
               </div>
             </div>
           </div>`;
@@ -309,7 +332,7 @@
 
 
     async function setOrderDetails(qty) {
-      const res = await fetch(`${appsScriptURL}?jumlah=${qty}`);
+      const res = await fetch(`${scriptBaseUrl}?jumlah=${qty}`);
       const data = await res.json();
       const prod = data.find(p => p.id === currentItem.id);
 
@@ -343,7 +366,7 @@
       const address = document.getElementById('custAddress').value.trim();
       orderModal.hide();
 
-      const res = await fetch(`${appsScriptURL}?jumlah=${qty}`);
+      const res = await fetch(`${scriptBaseUrl}?jumlah=${qty}`);
       const data = await res.json();
       const prod = data.find(p => p.id === currentItem.id);
 
@@ -372,6 +395,9 @@
       const item = produk.find(p => p.id === id);
       if (!item) return console.error('Produk tidak ditemukan:', id);
       currentItem = item;
+
+        tambahKlik(id); // <== TAMBAHKAN INI
+
 
       // Siapkan list gambar: Apps Script sudah kirim array, fallback jika string
       const gambarList = Array.isArray(item.gambar)
@@ -482,23 +508,25 @@
       const s = document.getElementById('sortSelect').value;
 
       let res = produk.filter(p =>
-        // cari nama
         p.nama.toLowerCase().includes(kw) &&
-        // jika kategoriAktif === 'Murah', pakai harga ≤ 5000
-        ( kategoriAktif === 'Murah'
+        (
+          kategoriAktif === 'Murah'
             ? p.harga <= 6000
-            : (kategoriAktif ? p.kategori === kategoriAktif : true)
+            : kategoriAktif === 'Populer'
+              ? true
+              : (kategoriAktif ? p.kategori === kategoriAktif : true)
         )
       );
 
-      // Pisahkan produk dengan harga tidak valid (kosong atau nol)
       const validHarga = res.filter(p => p.harga && p.harga > 0);
       const invalidHarga = res.filter(p => !p.harga || p.harga <= 0);
 
-      // Default: urutkan produk terbaru
-      validHarga.sort((a, b) => b.id - a.id);
+      if (kategoriAktif === 'Populer') {
+        validHarga.sort((a, b) => (b.klik || 0) - (a.klik || 0));
+      } else {
+        validHarga.sort((a, b) => b.id - a.id);
+      }
 
-      // Urutkan berdasarkan harga jika dipilih
       if (s === 'asc') {
         validHarga.sort((a, b) => {
           if (a.harga === b.harga) return b.id - a.id;
@@ -511,9 +539,13 @@
         });
       }
 
-      // Gabungkan kembali: produk dengan harga valid dulu, baru yang tidak valid
-      tampilkanProduk([...validHarga, ...invalidHarga]);
+      const finalProduk = (kategoriAktif === 'Populer')
+        ? validHarga.slice(0, 10)  // ambil top 10 klik
+        : validHarga;
+
+      tampilkanProduk([...finalProduk, ...invalidHarga]);
     }
+
 
 
 
@@ -624,6 +656,88 @@
     function zoomGambar(src) {
       document.getElementById('zoomedImage').src = src;
     }
+
+    function tambahKlik(id) {
+      $.ajax({
+        url: scriptBaseUrl,
+        method: 'POST',
+        contentType: 'text/plain; charset=UTF-8',
+        data: JSON.stringify({
+          sheet: 'Produk',
+          action: 'tambahKlik',
+          id: parseInt(id, 10)
+        }),
+        success: function(res) {
+          console.log("Klik ditambah:", res);
+        },
+        error: function(err) {
+          console.error("Gagal tambah klik:", err);
+        }
+      });
+    }
+
+    function tampilkanProdukPilihan() {
+      const container = document.getElementById('produkPilihan');
+      container.innerHTML = '';
+
+      const populer = [...produk].sort((a, b) => (b.klik || 0) - (a.klik || 0)).slice(0, 6);
+      const terbaru = [...produk].sort((a, b) => b.id - a.id).slice(0, 6);
+      const termurah = [...produk].filter(p => p.harga > 0).sort((a, b) => a.harga - b.harga).slice(0, 6);
+
+      container.innerHTML += buatSection('🔥 Populer', populer, "setKategori('Populer')");
+      container.innerHTML += buatSection('🆕 Produk Terbaru', terbaru, "kategoriAktif=''; filterProduk()")
+      container.innerHTML += buatSection('💸 Termurah', termurah, "setKategori('Murah')")
+    }
+
+    function buatSection(judul, data, onClickLainnya) {
+      let html = `<div class="mb-4">
+        <div class="d-flex align-items-center mb-2">
+          <h5 class="me-2">${judul}</h5>
+          <div class="flex-grow-1 border-top"></div>
+        </div>
+        <div class="row">`;
+
+      data.forEach(p => {
+        const thumb = Array.isArray(p.gambar) ? p.gambar[0] : p.gambar;
+        html += `
+          <div class='col-6 col-md-4 col-lg-2 mb-3'>
+            <div class='card h-100' style='cursor:pointer' onclick='showDetail(${p.id})'>
+              <img src='${thumb}' class='card-img-top' onerror="this.src='https://via.placeholder.com/300x180?text=No+Image'" />
+              <div class='card-body p-2'>
+                <h6 class='card-title mb-1'>${p.nama}</h6>
+                <small class='text-muted'>Rp ${p.harga500.toLocaleString()}</small>
+              </div>
+            </div>
+          </div>`;
+      });
+
+      html += `</div>
+        <div class="text-center">
+          <a href="#" onclick="${onClickLainnya}; return false;" class="btn btn-sm btn-outline-secondary">Lihat lainnya</a>
+        </div>
+      </div>`;
+      return html;
+    }
+
+    function setKategori(kat) {
+      kategoriAktif = kat;
+      tampilanUtama = false;
+      filterProduk();
+      document.getElementById('produkPilihan').innerHTML = '';
+      document.getElementById('produk-list').scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('btnKembali').style.display = 'inline-block';
+    }
+
+    function kembaliKeUtama() {
+      kategoriAktif = '';
+      tampilanUtama = true;
+      document.getElementById('btnKembali').style.display = 'none';
+      tampilkanProdukPilihan();
+      tampilkanProduk(produk); // reset tampilan
+    }
+
+
+
 
   </script>
 </body>
