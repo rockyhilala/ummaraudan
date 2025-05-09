@@ -12,7 +12,6 @@
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <!-- Cloudinary widget -->
-  <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
   <style>
     html, body { height:100%; margin:0; overflow:hidden; }
     #wrapper { display:flex; height:100%; }
@@ -32,6 +31,42 @@
       #sidebar .list-group-item { flex:1; justify-content:center; font-size:0; }
       #sidebar .list-group-item i { font-size:1.25rem; }
       #menu-toggle { display:none; }
+      #btnTambahMobile {
+        font-size: 1.5rem;
+        text-align: center;
+      }
+      .mobile-nav-item {
+        flex: 1;
+        height: 60px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 0;
+        border-right: 1px solid #ccc;
+        background-color: #f8f9fa;
+      }
+
+      .mobile-nav-item:last-child {
+        border-right: none;
+      }
+
+      #btnTambahMobile {
+        width: 60px;
+        height: 60px;
+        border-radius: 0;
+        border-left: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+      }
+
+      #content { padding-bottom:3rem; }
+    }
+        /* Tampilkan teks pada layar desktop */
+    .d-none {
+      display: none !important;
+    }
+
+    .d-md-inline {
+      display: inline-block !important;
     }
   </style>
 </head>
@@ -41,12 +76,26 @@
     <nav id="sidebar">
       <div class="sidebar-heading">ADMIN PRODUK</div>
       <div class="list-group list-group-flush flex-grow-1">
-        <a href="#" class="list-group-item list-group-item-action active" data-menu="produk">
-          <i class="bi bi-box-seam-fill"></i><span class="sidebar-text ms-2">Produk</span>
+
+        <!-- Tombol Produk -->
+        <a href="#" class="list-group-item list-group-item-action mobile-nav-item" data-menu="produk">
+          <i class="bi bi-box-seam-fill" style="font-size: 1.5rem;"></i>
+          <span class="d-none d-md-inline ms-2">Produk</span> <!-- Teks untuk Desktop -->
         </a>
-        <a href="#" class="list-group-item list-group-item-action" data-menu="populer">
-          <i class="bi bi-fire"></i><span class="sidebar-text ms-2">Populer</span>
-        </a>        
+
+        <!-- Tombol Tambah (di tengah) -->
+        <a href="#" id="btnTambahMobile" class="list-group-item list-group-item-action btn btn-success" style="background-color: rgb(21, 117, 85);">
+          <i class="bi bi-plus-lg" style="font-size: 1.5rem; font-weight: bolder; color: white;"></i>
+          <span class="d-none d-md-inline ms-2">Tambah</span> <!-- Teks untuk Desktop -->
+        </a>
+
+        <!-- Tombol Populer -->
+        <a href="#" class="list-group-item list-group-item-action mobile-nav-item" data-menu="populer">
+          <i class="bi bi-fire" style="font-size: 1.5rem;"></i>
+          <span class="d-none d-md-inline ms-2">Populer</span> <!-- Teks untuk Desktop -->
+        </a>
+
+                
       </div>
     </nav>
     <!-- Page Content -->
@@ -110,242 +159,391 @@
           <div class="col-md-6 mb-3">
             <label class="form-label">Gambar Utama</label><br>
             <button type="button" class="btn btn-secondary" id="uploadProdBtn">
-              <i class="bi bi-upload me-1"></i>Upload
+              <i class="bi bi-upload me-1"></i>Upload (max 5)
             </button>
-            <input type="hidden" id="prodGambar1">
-            <div class="mt-2">
+            <!-- Satu input untuk menampung array URL -->
+            <input type="hidden" id="prodGambar" name="prodGambar">
+            <!-- Container untuk menampung thumbnail -->
+            <div class="mt-2" id="thumbProdContainer"></div>
+            
               <img id="thumbProd" class="img-thumbnail" style="width:100px; display:none;">
             </div>
           </div>
-        </div>
-        <div class="modal-footer border-0">
-          <button type="submit" class="btn btn-primary w-100">
-            <span class="spinner-border spinner-border-sm me-2 d-none"></span>Simpan
-          </button>
+          <div class="modal-footer border-0">
+            <button type="submit" class="btn btn-primary w-100">
+              <span class="spinner-border spinner-border-sm me-2 d-none"></span>Simpan
+            </button>
+          </div>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- Tombol Tambah Produk Tetap -->
+  <button id="btnTambahFloating" class="btn btn-success rounded-circle position-fixed d-none d-md-flex align-items-center justify-content-center" style="bottom:20px; right:20px; width:50px; height:50px; z-index:1030;">
+    <i class="bi bi-plus-lg fs-3"></i>
+  </button>
+
+
   <!-- JS deps -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
   <script>
-      const scriptBaseUrl = 'https://script.google.com/macros/s/AKfycbzTSN5GdU6TnFflUYhfO1IPqBVO9wIf_UNEnLZdpXLYf7xQICw10Iv9hCW2wHQVDdb6hQ/exec';
-      const cloudName    = 'dhsq8zrvy';
-      const uploadPreset = 'preset_upload_mokas';
-
-  $(document).ready(function() {
-    // Inisialisasi Cloudinary upload widget
-    const widget = cloudinary.createUploadWidget({
-      cloudName: cloudName,
-      uploadPreset: uploadPreset,
-      multiple: false,
-      sources: ["local", "url", "camera"]
-    }, (error, result) => {
-      if (!error && result && result.event === "success") {
-        $('#prodGambar1').val(result.info.secure_url);
-        $('#thumbProd').attr('src', result.info.secure_url).show();
-      }
-    });
-
-    // Buka widget ketika tombol Upload diklik
-    $('#uploadProdBtn').click(() => widget.open());
-
-    // Load konten default: list produk
-    loadProduk();
-
-    // Fungsi Load Produk
-    function loadProduk() {
-      $.getJSON(`${scriptBaseUrl}?sheet=Produk`, function(products) {
-        let html = `
-          <button class="btn btn-success mb-3" id="btnTambah"><i class="bi bi-plus-lg"></i> Tambah Produk</button>
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                <th>ID</th><th>Nama</th><th>Kategori</th><th>Harga</th><th>Gambar</th><th>Aksi</th>
-              </tr>
-            </thead><tbody>`;
-        products.forEach(p => {
-          const thumb = p.gambar[0]
-            ? `<img src="${p.gambar[0]}" style="width:50px;height:auto;">`
-            : '';
-          html += `
-            <tr>
-              <td>${p.id}</td>
-              <td>${p.nama}</td>
-              <td>${p.kategori}</td>
-              <td>${p.harga}</td>
-              <td>${thumb}</td>
-              <td>
-                <button class="btn btn-sm btn-primary btn-edit" data-id="${p.id}"><i class="bi bi-pencil"></i></button>
-                <button class="btn btn-sm btn-danger btn-delete" data-id="${p.id}"><i class="bi bi-trash"></i></button>
-              </td>
-            </tr>`;
-        });
-        html += `</tbody></table>`;
-        $('#content').html(html);
-      });
-    }
-
-    // Tampilkan modal untuk tambah
-    $('#content').on('click', '#btnTambah', function() {
-      clearForm();
-      $('#modalProduk').modal('show');
-    });
-
-    // Tampilkan modal untuk edit
-    $('#content').on('click', '.btn-edit', function() {
-      const id = $(this).data('id');
-      // Ambil detail produk via filter dari load sebelumnya (atau reload):
-      $.getJSON(`${scriptBaseUrl}?sheet=Produk`, function(products) {
-        const p = products.find(x => x.id === id);
-        if (!p) return Swal.fire('Error', 'Data tidak ditemukan', 'error');
-        // Isi form
-        $('#prodId').val(p.id);
-        $('#prodNama').val(p.nama);
-        $('#prodKategori').val(p.kategori);
-        $('#prodHarga50').val(p.harga50);
-        $('#prodHarga100').val(p.harga100);
-        $('#prodHarga200').val(p.harga200);
-        $('#prodHarga300').val(p.harga300);
-        $('#prodHarga400').val(p.harga400);
-        $('#prodHarga500').val(p.harga500);
-        $('#prodDeskripsi').val(p.deskripsi);
-        if (p.gambar[0]) {
-          $('#prodGambar1').val(p.gambar[0]);
-          $('#thumbProd').attr('src', p.gambar[0]).show();
-        } else {
-          $('#thumbProd').hide();
+    const scriptBaseUrl = 'https://script.google.com/macros/s/AKfycbzTSN5GdU6TnFflUYhfO1IPqBVO9wIf_UNEnLZdpXLYf7xQICw10Iv9hCW2wHQVDdb6hQ/exec';
+    const cloudName    = 'dhsq8zrvy';
+    const uploadPreset = 'preset_upload_mokas';
+  
+    $(document).ready(function() {
+      let uploadedImages = [];
+  
+      // Inisialisasi Cloudinary upload widget
+      const widget = cloudinary.createUploadWidget({
+        cloudName,
+        uploadPreset,
+        multiple: true,
+        maxFiles: 5,
+        sources: ["local","url","camera"]
+      }, (err, res) => {
+        if (!err && res.event === "success") {
+          uploadedImages.push(res.info.secure_url);
+  
+          // Render thumbnail dengan tombol remove
+          $('#thumbProdContainer').append(`
+            <div class="position-relative d-inline-block me-2 mb-2 image-item">
+              <img src="${res.info.secure_url}"
+                   class="img-thumbnail"
+                   style="width:100px;">
+              <button type="button"
+                      class="btn btn-sm btn-danger position-absolute top-0 end-0 btn-remove-image">
+                &times;
+              </button>
+            </div>
+          `);
+  
+          // Update hidden input
+          $('#prodGambar').val(JSON.stringify(uploadedImages));
         }
+      });
+  
+      // Handler untuk tombol × pada thumbnail (hapus satu per satu)
+      $('#thumbProdContainer').on('click', '.btn-remove-image', function() {
+        const $item = $(this).closest('.image-item');
+        const src   = $item.find('img').attr('src');
+        uploadedImages = uploadedImages.filter(u => u !== src);
+        $('#prodGambar').val(JSON.stringify(uploadedImages));
+        $item.remove();
+      });
+  
+      // Buka widget ketika tombol Upload diklik
+      $('#uploadProdBtn').on('click', function() {
+        uploadedImages = [];
+        $('#prodGambar').val('[]');
+        $('#thumbProdContainer').empty();
+        widget.open();
+      });
+  
+      // Handler tombol tambah (“+”) di sidebar & floating
+      $('#btnTambahMobile, #btnTambahFloating').on('click', function() {
+        clearForm();
         $('#modalProduk').modal('show');
       });
-    });
+  
+      // Menu aktif & load default
+      function setActive(menu) {
+        $('[data-menu]').removeClass('active');
+        $(`[data-menu="${menu}"]`).addClass('active');
+        menu === 'produk' ? loadProduk() : loadPopuler();
+      }
+      setActive('produk');
+  
+      // Load daftar Produk
+      function loadProduk() {
+        $.getJSON(`${scriptBaseUrl}?sheet=Produk`, products => {
+          // Simpan ke localStorage
+          localStorage.setItem('produkData', JSON.stringify(products));
 
-    // Submit form (insert / update)
-    $('#formProduk').submit(function(e) {
-      e.preventDefault();
-      const id = $('#prodId').val();
-      const action = id ? 'update' : 'insert';
-      // Disable tombol sambil loading
-      const btn = $(this).find('button[type=submit]');
-      btn.attr('disabled', true).find('.spinner-border').removeClass('d-none');
-
-      const payload = {
-        sheet: 'Produk',
-        action: action,
-        id: id ? parseInt(id,10) : undefined,
-        nama: $('#prodNama').val(),
-        kategori: $('#prodKategori').val(),
-        harga50: parseFloat($('#prodHarga50').val()) || 0,
-        harga100: parseFloat($('#prodHarga100').val()) || 0,
-        harga200: parseFloat($('#prodHarga200').val()) || 0,
-        harga300: parseFloat($('#prodHarga300').val()) || 0,
-        harga400: parseFloat($('#prodHarga400').val()) || 0,
-        harga500: parseFloat($('#prodHarga500').val()) || 0,
-        deskripsi: $('#prodDeskripsi').val(),
-        gambar1: $('#prodGambar1').val()
-      };
-
-      $.ajax({
-        url: scriptBaseUrl,
-        method: 'POST',
-        data: JSON.stringify(payload),
-        contentType: 'text/plain; charset=UTF-8',   // <<< simple content-type
-        dataType: 'json',                           // output kamu tetap JSON
-        success: function(res) {
-          Swal.fire('Sukses', res.message, 'success');
-          $('#modalProduk').modal('hide');
-          loadProduk();
-        },
-        error: function(err) {
-          Swal.fire('Error', 'Terjadi kesalahan', 'error');
-        },
-        complete: function() {
-          btn.attr('disabled', false).find('.spinner-border').addClass('d-none');
-        }
-      });
-    });
-
-    // Delete produk
-    $('#content').on('click', '.btn-delete', function() {
-      const id = $(this).data('id');
-
-      Swal.fire({
-        title: 'Hapus produk?',
-        text: `Produk dengan ID ${id} akan dihapus.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Ya, hapus',
-        cancelButtonText: 'Batal'
-      }).then(result => {
-        if (!result.isConfirmed) return;
-
-        $.ajax({
-          url: scriptBaseUrl,
-          method: 'POST',
-          data: JSON.stringify({
-            sheet: 'Produk',
-            action: 'delete',
-            id: parseInt(id, 10)
-          }),
-          contentType: 'text/plain; charset=UTF-8',  // <<< penting untuk hindari CORS preflight
-          dataType: 'json',
-          success: function(res) {
-            if (res.success) {
-              Swal.fire('Terhapus!', res.message, 'success');
-              loadProduk();
-            } else {
-              Swal.fire('Gagal!', res.message, 'error');
-            }
-          },
-          error: function(err) {
-            Swal.fire('Error', 'Tidak dapat menghubungi server.', 'error');
+          // Tampilkan data ke tabel
+          let html = `
+            <table class="table table-striped">
+              <thead><tr>
+                <th>ID</th><th>Nama</th><th>Kategori</th><th>Gambar</th><th>Aksi</th>
+              </tr></thead><tbody>`;
+          products.forEach(p => {
+            const thumb = p.gambar[0]
+              ? `<img src="${p.gambar[0]}" style="width:50px; height:50px; object-fit:cover;">`
+              : '';
+              const isMobile = window.innerWidth < 576;
+              html += `
+                <tr ${isMobile ? `class="row-produk"` : ''} data-id="${p.id}" ${isMobile ? `style="cursor:pointer;"` : ''}>                  
+                  <td>${p.id}</td>
+                  <td>${p.nama}</td>
+                  <td>${p.kategori}</td>
+                  <td>${thumb}</td>
+                  <td>
+                    <button class="btn btn-sm btn-primary btn-edit d-none d-md-inline" data-id="${p.id}">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger btn-delete" data-id="${p.id}">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>`;
+          });
+          const isMobile = window.innerWidth < 576;
+          html += `</tbody></table>`;
+          $('#content').html(html);
+        }).fail(() => {
+          // Jika gagal ambil data dari server, ambil dari localStorage
+          const dataProduk = JSON.parse(localStorage.getItem('produkData') || '[]');
+          if (dataProduk.length === 0) {
+            $('#content').html('<div class="alert alert-warning">Tidak bisa memuat data dan tidak ada data tersimpan.</div>');
+            return;
           }
+
+          let html = `
+            <div class="alert alert-info">Menampilkan data dari cache lokal.</div>
+            <table class="table table-striped">
+              <thead><tr>
+                <th>ID</th><th>Nama</th><th>Kategori</th><th>Gambar</th><th>Aksi</th>
+              </tr></thead><tbody>`;
+          dataProduk.forEach(p => {
+            const thumb = p.gambar[0]
+              ? `<img src="${p.gambar[0]}" style="width:50px; height:50px; object-fit:cover;">`
+              : '';
+              html += `
+              <tr ${isMobile ? `class="row-produk"` : ''} data-id="${p.id}" ${isMobile ? `style="cursor:pointer;"` : ''}>                  
+                  <td>${p.id}</td>
+                  <td>${p.nama}</td>
+                  <td>${p.kategori}</td>
+                  <td>${thumb}</td>
+                  <td>
+                    <button class="btn btn-sm btn-primary btn-edit d-none d-md-inline" data-id="${p.id}">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger btn-delete" data-id="${p.id}">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>`;
+          });
+          html += `</tbody></table>`;
+          $('#content').html(html);
+        });
+      }
+
+  
+      // Load Produk Terpopuler
+      function loadPopuler() {
+        $.getJSON(`${scriptBaseUrl}?sheet=Produk`, products => {
+          localStorage.setItem('produkData', JSON.stringify(products));
+          const top10 = products.sort((a,b)=>(b.klik||0)-(a.klik||0)).slice(0,10);
+          let html = `
+            <h4 class="mb-3">Produk Terpopuler</h4>
+            <table class="table table-bordered table-striped">
+              <thead><tr>
+                <th>ID</th><th>Nama</th><th>Gambar</th><th>Klik</th>
+              </tr></thead><tbody>`;
+          top10.forEach(p => {
+            const img = p.gambar[0]
+              ? `<img src="${p.gambar[0]}" style="width:60px; height:60px; object-fit:cover;">`
+              : '';
+            html += `
+              <tr>
+                <td>${p.id}</td>
+                <td>${p.nama}</td>
+                <td>${img}</td>
+                <td>${p.klik||0}</td>
+              </tr>`;
+          });
+          html += `</tbody></table>`;
+          $('#content').html(html);
+        });
+      }
+  
+      // Tombol “Tambah” dalam content
+      $('#content').on('click', '#btnTambah', () => {
+        clearForm();
+        $('#modalProduk').modal('show');
+      });
+  
+      // Edit Produk
+      $('#content').on('click', '.btn-edit', function() {
+        const id = $(this).data('id');
+        $.getJSON(`${scriptBaseUrl}?sheet=Produk`, products => {
+          localStorage.setItem('produkData', JSON.stringify(products));
+          const p = products.find(x => x.id === id);
+          if (!p) return Swal.fire('Error','Data tidak ditemukan','error');
+          $('#prodId').val(p.id);
+          $('#prodNama').val(p.nama);
+          $('#prodKategori').val(p.kategori);
+          $('#prodHarga50').val(p.harga50);
+          $('#prodHarga100').val(p.harga100);
+          $('#prodHarga200').val(p.harga200);
+          $('#prodHarga300').val(p.harga300);
+          $('#prodHarga400').val(p.harga400);
+          $('#prodHarga500').val(p.harga500);
+          $('#prodDeskripsi').val(p.deskripsi);
+  
+          // Tampilkan kembali thumbnails lama
+          uploadedImages = p.gambar.slice();
+          $('#thumbProdContainer').empty();
+          uploadedImages.forEach(u => {
+            $('#thumbProdContainer').append(`
+              <div class="position-relative d-inline-block me-2 mb-2 image-item">
+                <img src="${u}" class="img-thumbnail" style="width:100px;">
+                <button type="button"
+                        class="btn btn-sm btn-danger position-absolute top-0 end-0 btn-remove-image">
+                  &times;
+                </button>
+              </div>
+            `);
+          });
+          $('#prodGambar').val(JSON.stringify(uploadedImages));
+          $('#modalProduk').modal('show');
         });
       });
-    });
+  
+      // Submit Form Insert / Update
+      $('#formProduk').submit(function(e) {
+        e.preventDefault();
+        const id = $('#prodId').val();
+        const action = id ? 'update' : 'insert';
+        const btn = $(this).find('button[type=submit]');
+        btn.attr('disabled', true).find('.spinner-border').removeClass('d-none');
+  
+        const payload = {
+          sheet: 'Produk',
+          action,
+          id: id ? parseInt(id,10) : undefined,
+          nama: $('#prodNama').val(),
+          kategori: $('#prodKategori').val(),
+          harga50:  parseFloat($('#prodHarga50').val())  || 0,
+          harga100: parseFloat($('#prodHarga100').val()) || 0,
+          harga200: parseFloat($('#prodHarga200').val()) || 0,
+          harga300: parseFloat($('#prodHarga300').val()) || 0,
+          harga400: parseFloat($('#prodHarga400').val()) || 0,
+          harga500: parseFloat($('#prodHarga500').val()) || 0,
+          deskripsi: $('#prodDeskripsi').val(),
+          gambar: JSON.stringify(uploadedImages)
+        };
+  
+        $.ajax({
+          url:         scriptBaseUrl,
+          method:      'POST',
+          crossDomain: true,
+          contentType: 'text/plain; charset=UTF-8',
+          dataType:    'json',
+          data:        JSON.stringify(payload)
+        })
+        .done(res => {
+          Swal.fire(res.success ? 'Sukses' : 'Gagal', res.message, res.success ? 'success' : 'error');
+          if (res.success) {
+            $('#modalProduk').modal('hide');
+            loadProduk();
+          }
+        })
+        .fail(() => {
+          Swal.fire('Error','Tidak dapat menghubungi server.','error');
+        })
+        .always(() => {
+          btn.attr('disabled', false).find('.spinner-border').addClass('d-none');
+        });
+      });
+  
+      // Delete Produk
+      $('#content').on('click', '.btn-delete', function() {
+        const id = $(this).data('id');
+        Swal.fire({
+          title: 'Hapus produk?',
+          text:  `ID ${id} akan dihapus.`,
+          icon:  'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Ya, hapus'
+        }).then(res => {
+          if (!res.isConfirmed) return;
+          $.ajax({
+            url:         scriptBaseUrl,
+            method:      'POST',
+            crossDomain: true,
+            contentType: 'text/plain; charset=UTF-8',
+            dataType:    'json',
+            data:        JSON.stringify({ sheet: 'Produk', action: 'delete', id: parseInt(id,10) })
+          })
+          .done(r => {
+            if (r.success) {
+              Swal.fire('Terhapus!', r.message, 'success');
+              loadProduk();
+            } else {
+              Swal.fire('Gagal!', r.message, 'error');
+            }
+          })
+          .fail(() => {
+            Swal.fire('Error','Tidak dapat menghubungi server.','error');
+          });
+        });
+      });
+  
+      // Reset form
+      function clearForm() {
+        $('#formProduk')[0].reset();
+        $('#prodId').val('');
+        uploadedImages = [];
+        $('#prodGambar').val('[]');
+        $('#thumbProdContainer').empty();
+      }
+  
+      // Menu klik
+      $(document).on('click','[data-menu="produk"]', ()=>setActive('produk'));
+      $(document).on('click','[data-menu="populer"]', ()=>setActive('populer'));
 
+      $(document).on('click', '.row-produk', function(e) {
+        // Hindari konflik jika user klik tombol Delete (biar tetap bisa diakses)
+        if ($(e.target).closest('button').length > 0) return;
 
-    // Reset form fields
-    function clearForm() {
-      $('#formProduk')[0].reset();
-      $('#prodId').val('');
-      $('#thumbProd').hide();
-    }
-  });
+        const id = $(this).data('id');
+        const isMobile = window.innerWidth < 768;
 
-    // Klik menu Populer
-  $(document).on('click', '[data-menu="populer"]', function() {
-    $.getJSON(`${scriptBaseUrl}?sheet=Produk`, function(products) {
-      const top = products
-        .sort((a, b) => (b.klik || 0) - (a.klik || 0))
-        .slice(0, 10); // ambil 10 besar
+        if (isMobile) {
+          // Muat data produk dan isi form
+          const products = JSON.parse(localStorage.getItem('produkData') || '[]');
+          const p = products.find(x => x.id == id);
+          if (!p) return Swal.fire('Error','Data tidak ditemukan','error');
 
-      let html = `
-        <h4 class="mb-3">Produk Terpopuler</h4>
-        <table class="table table-bordered table-striped">
-          <thead><tr>
-            <th>ID</th><th>Nama</th><th>Gambar</th><th>Klik</th>
-          </tr></thead><tbody>`;
+          $('#prodId').val(p.id);
+          $('#prodNama').val(p.nama);
+          $('#prodKategori').val(p.kategori);
+          $('#prodHarga50').val(p.harga50);
+          $('#prodHarga100').val(p.harga100);
+          $('#prodHarga200').val(p.harga200);
+          $('#prodHarga300').val(p.harga300);
+          $('#prodHarga400').val(p.harga400);
+          $('#prodHarga500').val(p.harga500);
+          $('#prodDeskripsi').val(p.deskripsi);
 
-      top.forEach(p => {
-        const img = p.gambar[0]
-          ? `<img src="${p.gambar[0]}" style="width:60px;">`
-          : '';
-        html += `<tr>
-          <td>${p.id}</td>
-          <td>${p.nama}</td>
-          <td>${img}</td>
-          <td>${p.klik || 0}</td>
-        </tr>`;
+          uploadedImages = p.gambar.slice();
+          $('#thumbProdContainer').empty();
+          uploadedImages.forEach(u => {
+            $('#thumbProdContainer').append(`
+              <div class="position-relative d-inline-block me-2 mb-2 image-item">
+                <img src="${u}" class="img-thumbnail" style="width:100px;">
+                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 btn-remove-image">&times;</button>
+              </div>
+            `);
+          });
+          $('#prodGambar').val(JSON.stringify(uploadedImages));
+
+          $('#modalProduk').modal('show');
+        }
       });
 
-      html += `</tbody></table>`;
-      $('#content').html(html);
-    });
-  });
 
+      
+    });
   </script>
+  
+  
+
+
 </body>
 </html>
